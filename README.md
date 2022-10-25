@@ -14,7 +14,8 @@ time I have tried giving the model is 2 weeks, with each of my 4 BRM chains spli
 (effectively running on 40 cores). This model not finishing was quite disappointing.
 
 So, the goal here is to get this puppy to run on a GPU. Documentation for this is out here (I have seen some mention 
-of OpenCL integration), but it is beyond me. This would help my model here, but also MANY models run in the Psych 
+of OpenCL integration), but it is beyond me (here is a good starter link https://rdrr.io/github/paul-buerkner/brms/man/opencl.html).
+This would help my model here, but also MANY models run in the Psych 
 Department. You are welcome to frame this as providing a solution for multiple analyses in the department if you want,
 but if you want to write it up as being specific to my project, here is what my project is all about.
 
