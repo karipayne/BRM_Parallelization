@@ -70,6 +70,7 @@ model <-brm(euctrans| cens(censored)~ TRIAL_blurCondition.c * TRIAL_windowCondit
 	This step automates some of what is needed for the cmdstanr backend. I do not believe this installation method works for Linux, so if you are using Linux check out [this page](https://mc-stan.org/docs/2_25/cmdstan-guide/cmdstan-installation.html).
 - Type `cmdstanr::check_cmdstan_toolchain(fix = TRUE)` and hit enter
 - Type `install_cmdstan()` and hit enter.
+- To run the code itself, you can press ctrl+enter (or run at the top of the screen) to run the code line-by-line, or select all and hit run to run it all at once.
 
 ### Running the code on Beocat
 - Copy "Model_for_small_dataset.R" to a directory in Beocat.
