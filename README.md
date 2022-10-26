@@ -58,15 +58,15 @@ model <-brm(euctrans| cens(censored)~ TRIAL_blurCondition.c * TRIAL_windowCondit
 
 ### Running the code in R Studio
 
-- Install R
-- Install R Studio
+- Install R through https://cran.r-project.org/
+- Install R Studio through https://www.rstudio.com/products/rstudio/download/
 - Download "Model_for_small_dataset.R"
 - Download "vid1MCBRD.csv"
 - At the top of the RStudio window, click Session > Set Working Directory > Choose Directory. Choose the directory that has the .R file and the .csv file.
 - In the console in the bottom left window of RStudio, type`install.packages('brms', dependencies = TRUE)` and hit enter.
 - Type `install.packages("cmdstanr", repos = c("https://mc-stan.org/r-packages/", getOption("repos")))` and hit enter
 - Type `library(cmdstanr)` and hit enter
-- Install Rtools42 through this site: https://cran.r-project.org/bin/windows/Rtools/rtools42/rtools.html
+- Install Rtools42 through this site: https://cran.r-project.org/bin/windows/Rtools/rtools42/rtools.html .
 	This step automates some of what is needed for the cmdstanr backend. I do not believe this installation method works for Linux, so if you are using Linux check out [this page](https://mc-stan.org/docs/2_25/cmdstan-guide/cmdstan-installation.html).
 - Type `cmdstanr::check_cmdstan_toolchain(fix = TRUE)` and hit enter
 - Type `install_cmdstan()` and hit enter.
