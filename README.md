@@ -56,6 +56,27 @@ model <-brm(euctrans| cens(censored)~ TRIAL_blurCondition.c * TRIAL_windowCondit
            data=myd, init="0", iter=6000, chains = 4, cores = 4, warmup = 1000, prior = priors2, save_pars=save_pars(all=TRUE))
 ```
 
+### Running the code in R Studio
+
+- Install R
+- Install R Studio
+- Download "Model_for_small_dataset.R"
+- Download "vid1MCBRD.csv"
+- At the top of the RStudio window, click Session > Set Working Directory > Choose Directory. Choose the directory that has the .R file and the .csv file.
+- In the console in the bottom left window of RStudio, type`install.packages('brms', dependencies = TRUE)` and hit enter.
+- Type `install.packages("cmdstanr", repos = c("https://mc-stan.org/r-packages/", getOption("repos")))` and hit enter
+- Type `library(cmdstanr)` and hit enter
+- Install Rtools42 through this site: https://cran.r-project.org/bin/windows/Rtools/rtools42/rtools.html
+	This step automates some of what is needed for the cmdstanr backend. I do not believe this installation method works for Linux, so if you are using Linux check out [this page](https://mc-stan.org/docs/2_25/cmdstan-guide/cmdstan-installation.html).
+- Type `cmdstanr::check_cmdstan_toolchain(fix = TRUE)` and hit enter
+- Type `install_cmdstan()` and hit enter.
+
+### Running the code on Beocat
+- Copy "Model_for_small_dataset.R" to a directory in Beocat.
+- Copy "vid1MCBRD.csv" to a directory in Beocat.
+- Copy "BRM.sh" to a directory in Beocat. You can adjust this shell script as needed.
+- Run `sbatch BRM.sh` on Beocat. I want to say I was able to run this on Beocat without adding additional packages, but if additional packages are needed, try the steps listed above.
+
 If you have any questions, email me at karipayne@ksu.edu.
 
 Thanks!
