@@ -78,6 +78,10 @@ model <-brm(euctrans| cens(censored)~ TRIAL_blurCondition.c * TRIAL_windowCondit
 - Copy "BRM.sh" to a directory in Beocat. You can adjust this shell script as needed.
 - Run `sbatch BRM.sh` on Beocat. I want to say I was able to run this on Beocat without adding additional packages, but if additional packages are needed, try the steps listed above.
 
+### Big Dataset for Model_for_large_dataset.R (the big final model)
+You can get the dataset for the large model on google drive here:
+https://drive.google.com/file/d/1-yRj_ZmBtE9gk0Mmj2wps3ZEjXxLdSyt/view?usp=sharing
+
 If you have any questions, email me at karipayne@ksu.edu.
 
 Thanks!
