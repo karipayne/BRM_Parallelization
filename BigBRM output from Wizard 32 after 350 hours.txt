@@ -1,0 +1,257 @@
+Running "module reset". Resetting modules to system default. The following $MODULEPATH directories have been removed: None
+> library(dplyr)
+Registered S3 methods overwritten by 'tibble':
+  method     from  
+  format.tbl pillar
+  print.tbl  pillar
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+> #library(plyr)
+> library(lattice)
+> library(ggplot2)
+> library(MASS)
+
+Attaching package: ‘MASS’
+
+The following object is masked from ‘package:dplyr’:
+
+    select
+
+> library(tidyr)
+> library(zoo)
+
+Attaching package: ‘zoo’
+
+The following objects are masked from ‘package:base’:
+
+    as.Date, as.Date.numeric
+
+> library(lme4)
+Loading required package: Matrix
+
+Attaching package: ‘Matrix’
+
+The following objects are masked from ‘package:tidyr’:
+
+    expand, pack, unpack
+
+> #library(emmeans)
+> library(effects)
+Loading required package: carData
+Use the command
+    lattice::trellis.par.set(effectsTheme())
+  to customize lattice options for effects plots.
+See ?effectsTheme for details.
+> library(brms)
+Loading required package: Rcpp
+Loading 'brms' package (version 2.17.0). Useful instructions
+can be found by typing help('brms'). A more detailed introduction
+to the package is available through vignette('brms_overview').
+
+Attaching package: ‘brms’
+
+The following object is masked from ‘package:lme4’:
+
+    ngrps
+
+The following object is masked from ‘package:stats’:
+
+    ar
+
+> library(tidybayes)
+
+Attaching package: ‘tidybayes’
+
+The following objects are masked from ‘package:brms’:
+
+    dstudent_t, pstudent_t, qstudent_t, rstudent_t
+
+> library(modelr)
+> library(gridExtra)
+
+Attaching package: ‘gridExtra’
+
+The following object is masked from ‘package:dplyr’:
+
+    combine
+
+> library(bayesplot)
+This is bayesplot version 1.7.1
+- Online documentation and vignettes at mc-stan.org/bayesplot
+- bayesplot theme set to bayesplot::theme_default()
+   * Does _not_ affect other ggplot2 plots
+   * See ?bayesplot_theme_set for details on theme setting
+> library(hexbin)
+> library(foreach)
+> library(doParallel)
+Loading required package: iterators
+Loading required package: parallel
+> #Maybe I'll need them? Who knows
+> 
+> #manually set working directory, because it will be different on Beocat
+> #setwd("C:/Users/Kari/Desktop/MCBRD_Final_Results/Ready_for_analyses")
+> 
+> myd<- read.csv("allMCBRD.csv", na.strings="NA", stringsAsFactors = T)
+> euc <- myd$Euc_Distance_VA
+> 
+> ## Recoding zeroes to half of the smallest other value (minimum)
+> euc.min <- min(euc[which(euc != 0)])
+> euc.transform <- ifelse(euc == 0, (euc.min/2), euc)
+> sort(unique(euc.transform))[1:15] # this shows that the minimum has been correctly adjusted. It's just that R is rounding weirdly for other functions
+ [1] 0.00640404 0.01280808 0.01280808 0.01280828 0.01280828 0.01280828
+ [7] 0.01280828 0.01280847 0.01280847 0.01280847 0.01280847 0.01280847
+[13] 0.01280847 0.01280847 0.01280847
+> euc.min.trans <- euc.min/2
+> euc.min.trans
+[1] 0.00640404
+> myd$euctrans <- euc.transform
+> 
+> #Set up censoring
+> myd$censored = ifelse(myd$euctrans==euc.min.trans, -1, 0) #lowervase censored for running the model
+> myd$Censored.graph = ifelse(myd$euctrans==euc.min.trans, "Yes", "No") #uppercase Censored.graph for graphing later
+> 
+> myd$TRIAL_blurCondition.c <- (myd$TRIAL_blurCondition - 0.3)
+> myd$TRIAL_windowCondition.c <- (myd$TRIAL_windowCondition - 3)
+> 
+> #Set priors
+> priors1 = c(prior("student_t(3, -1, 4)", class = "Intercept"),
++             prior("student_t(3, 0, 3)", class = "sd"),
++             prior("student_t(3, 0, 3)", class = "b")
++             #prior("student_t(3, 0, .1)", class = "sd", coef = "c.day", group="ID"),
++             #prior_string("student_t(3, 0, 0.5)", class = "b", coef = paste("GROUP", 1:4, sep="")),
++             #prior_string("student_t(3,-.2, .1)", class = "b", coef = "c.day"),
++             #prior_string("student_t(3, 0, 0.1)", class = "b", coef = paste("c.day:GROUP", 1:4, sep=""))
++ )
+> 
+> priors2 = c(prior("student_t(3, -1, 4)", class = "Intercept"),
++             prior("student_t(3, 0, 3)", class = "sd"),
++             prior("lkj(2)", class = "cor"),
++             prior("student_t(3, 0, 3)", class = "b")
++             #prior("student_t(3, 0, .1)", class = "sd", coef = "c.day", group="ID"),
++             #prior_string("student_t(3, 0, 0.5)", class = "b", coef = paste("GROUP", 1:4, sep="")),
++             #prior_string("student_t(3,-.2, .1)", class = "b", coef = "c.day"),
++             #prior_string("student_t(3, 0, 0.1)", class = "b", coef = paste("c.day:GROUP", 1:4, sep=""))
++ )
+> 
+> b3.2c <-brm(euctrans| cens(censored)~ TRIAL_blurCondition.c * TRIAL_windowCondition.c + (TRIAL_blurCondition.c * TRIAL_windowCondition.c|TRIAL_VideoName) + (TRIAL_blurCondition.c * TRIAL_windowCondition.c|participant), family=Gamma(link="log"),
++            data=myd, init="0", iter=20000, chains = 4, cores = 4, backend = "cmdstanr", threads = 10, warmup = 1500,
++            prior = priors2, save_pars=save_pars(all=TRUE)) #control = list(adapt_delta = 0.95))
+Start sampling
+Running MCMC with 4 parallel chains, with 10 thread(s) per chain...
+
+Chain 2 Iteration:     1 / 20000 [  0%]  (Warmup) 
+Chain 1 Iteration:     1 / 20000 [  0%]  (Warmup) 
+Chain 3 Iteration:     1 / 20000 [  0%]  (Warmup) 
+Chain 4 Iteration:     1 / 20000 [  0%]  (Warmup) 
+Chain 2 Iteration:   100 / 20000 [  0%]  (Warmup) 
+Chain 1 Iteration:   100 / 20000 [  0%]  (Warmup) 
+Chain 4 Iteration:   100 / 20000 [  0%]  (Warmup) 
+Chain 3 Iteration:   100 / 20000 [  0%]  (Warmup) 
+Chain 3 Iteration:   200 / 20000 [  1%]  (Warmup) 
+Chain 2 Iteration:   200 / 20000 [  1%]  (Warmup) 
+Chain 1 Iteration:   200 / 20000 [  1%]  (Warmup) 
+Chain 4 Iteration:   200 / 20000 [  1%]  (Warmup) 
+Chain 3 Iteration:   300 / 20000 [  1%]  (Warmup) 
+Chain 2 Iteration:   300 / 20000 [  1%]  (Warmup) 
+Chain 1 Iteration:   300 / 20000 [  1%]  (Warmup) 
+Chain 4 Iteration:   300 / 20000 [  1%]  (Warmup) 
+Chain 3 Iteration:   400 / 20000 [  2%]  (Warmup) 
+Chain 2 Iteration:   400 / 20000 [  2%]  (Warmup) 
+Chain 1 Iteration:   400 / 20000 [  2%]  (Warmup) 
+Chain 4 Iteration:   400 / 20000 [  2%]  (Warmup) 
+Chain 1 Iteration:   500 / 20000 [  2%]  (Warmup) 
+Chain 2 Iteration:   500 / 20000 [  2%]  (Warmup) 
+Chain 3 Iteration:   500 / 20000 [  2%]  (Warmup) 
+Chain 4 Iteration:   500 / 20000 [  2%]  (Warmup) 
+Chain 1 Iteration:   600 / 20000 [  3%]  (Warmup) 
+Chain 2 Iteration:   600 / 20000 [  3%]  (Warmup) 
+Chain 3 Iteration:   600 / 20000 [  3%]  (Warmup) 
+Chain 4 Iteration:   600 / 20000 [  3%]  (Warmup) 
+Chain 1 Iteration:   700 / 20000 [  3%]  (Warmup) 
+Chain 2 Iteration:   700 / 20000 [  3%]  (Warmup) 
+Chain 3 Iteration:   700 / 20000 [  3%]  (Warmup) 
+Chain 4 Iteration:   700 / 20000 [  3%]  (Warmup) 
+Chain 1 Iteration:   800 / 20000 [  4%]  (Warmup) 
+Chain 2 Iteration:   800 / 20000 [  4%]  (Warmup) 
+Chain 3 Iteration:   800 / 20000 [  4%]  (Warmup) 
+Chain 4 Iteration:   800 / 20000 [  4%]  (Warmup) 
+Chain 1 Iteration:   900 / 20000 [  4%]  (Warmup) 
+Chain 2 Iteration:   900 / 20000 [  4%]  (Warmup) 
+Chain 3 Iteration:   900 / 20000 [  4%]  (Warmup) 
+Chain 4 Iteration:   900 / 20000 [  4%]  (Warmup) 
+Chain 1 Iteration:  1000 / 20000 [  5%]  (Warmup) 
+Chain 2 Iteration:  1000 / 20000 [  5%]  (Warmup) 
+Chain 3 Iteration:  1000 / 20000 [  5%]  (Warmup) 
+Chain 1 Iteration:  1100 / 20000 [  5%]  (Warmup) 
+Chain 4 Iteration:  1000 / 20000 [  5%]  (Warmup) 
+Chain 2 Iteration:  1100 / 20000 [  5%]  (Warmup) 
+Chain 3 Iteration:  1100 / 20000 [  5%]  (Warmup) 
+Chain 1 Iteration:  1200 / 20000 [  6%]  (Warmup) 
+Chain 4 Iteration:  1100 / 20000 [  5%]  (Warmup) 
+Chain 2 Iteration:  1200 / 20000 [  6%]  (Warmup) 
+Chain 3 Iteration:  1200 / 20000 [  6%]  (Warmup) 
+Chain 1 Iteration:  1300 / 20000 [  6%]  (Warmup) 
+Chain 4 Iteration:  1200 / 20000 [  6%]  (Warmup) 
+Chain 2 Iteration:  1300 / 20000 [  6%]  (Warmup) 
+Chain 3 Iteration:  1300 / 20000 [  6%]  (Warmup) 
+Chain 1 Iteration:  1400 / 20000 [  7%]  (Warmup) 
+Chain 4 Iteration:  1300 / 20000 [  6%]  (Warmup) 
+Chain 2 Iteration:  1400 / 20000 [  7%]  (Warmup) 
+Chain 3 Iteration:  1400 / 20000 [  7%]  (Warmup) 
+Chain 1 Iteration:  1500 / 20000 [  7%]  (Warmup) 
+Chain 1 Iteration:  1501 / 20000 [  7%]  (Sampling) 
+Chain 4 Iteration:  1400 / 20000 [  7%]  (Warmup) 
+Chain 2 Iteration:  1500 / 20000 [  7%]  (Warmup) 
+Chain 2 Iteration:  1501 / 20000 [  7%]  (Sampling) 
+Chain 3 Iteration:  1500 / 20000 [  7%]  (Warmup) 
+Chain 3 Iteration:  1501 / 20000 [  7%]  (Sampling) 
+Chain 4 Iteration:  1500 / 20000 [  7%]  (Warmup) 
+Chain 4 Iteration:  1501 / 20000 [  7%]  (Sampling) 
+Chain 1 Iteration:  1600 / 20000 [  8%]  (Sampling) 
+Chain 2 Iteration:  1600 / 20000 [  8%]  (Sampling) 
+Chain 3 Iteration:  1600 / 20000 [  8%]  (Sampling) 
+Chain 4 Iteration:  1600 / 20000 [  8%]  (Sampling) 
+Chain 1 Iteration:  1700 / 20000 [  8%]  (Sampling) 
+Chain 2 Iteration:  1700 / 20000 [  8%]  (Sampling) 
+Chain 3 Iteration:  1700 / 20000 [  8%]  (Sampling) 
+Chain 4 Iteration:  1700 / 20000 [  8%]  (Sampling) 
+Chain 1 Iteration:  1800 / 20000 [  9%]  (Sampling) 
+Chain 3 Iteration:  1800 / 20000 [  9%]  (Sampling) 
+Chain 2 Iteration:  1800 / 20000 [  9%]  (Sampling) 
+Chain 1 Iteration:  1900 / 20000 [  9%]  (Sampling) 
+Chain 4 Iteration:  1800 / 20000 [  9%]  (Sampling) 
+Chain 3 Iteration:  1900 / 20000 [  9%]  (Sampling) 
+Chain 2 Iteration:  1900 / 20000 [  9%]  (Sampling) 
+Chain 1 Iteration:  2000 / 20000 [ 10%]  (Sampling) 
+Chain 4 Iteration:  1900 / 20000 [  9%]  (Sampling) 
+Chain 3 Iteration:  2000 / 20000 [ 10%]  (Sampling) 
+Chain 2 Iteration:  2000 / 20000 [ 10%]  (Sampling) 
+Chain 1 Iteration:  2100 / 20000 [ 10%]  (Sampling) 
+Chain 4 Iteration:  2000 / 20000 [ 10%]  (Sampling) 
+Chain 3 Iteration:  2100 / 20000 [ 10%]  (Sampling) 
+Chain 2 Iteration:  2100 / 20000 [ 10%]  (Sampling) 
+Chain 1 Iteration:  2200 / 20000 [ 11%]  (Sampling) 
+Chain 4 Iteration:  2100 / 20000 [ 10%]  (Sampling) 
+Chain 3 Iteration:  2200 / 20000 [ 11%]  (Sampling) 
+Chain 1 Iteration:  2300 / 20000 [ 11%]  (Sampling) 
+Chain 2 Iteration:  2200 / 20000 [ 11%]  (Sampling) 
+Chain 4 Iteration:  2200 / 20000 [ 11%]  (Sampling) 
+Chain 3 Iteration:  2300 / 20000 [ 11%]  (Sampling) 
+Chain 1 Iteration:  2400 / 20000 [ 12%]  (Sampling) 
+Chain 2 Iteration:  2300 / 20000 [ 11%]  (Sampling) 
+Chain 4 Iteration:  2300 / 20000 [ 11%]  (Sampling) 
+Chain 3 Iteration:  2400 / 20000 [ 12%]  (Sampling) 
+Chain 1 Iteration:  2500 / 20000 [ 12%]  (Sampling) 
+Chain 4 Iteration:  2400 / 20000 [ 12%]  (Sampling) 
+Chain 2 Iteration:  2400 / 20000 [ 12%]  (Sampling) 
+Chain 3 Iteration:  2500 / 20000 [ 12%]  (Sampling) 
+slurmstepd: error: *** JOB 7194154 ON wizard32 CANCELLED AT 2022-10-04T10:11:03 DUE TO TIME LIMIT ***
