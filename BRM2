@@ -1,6 +1,6 @@
 #!/bin/bash -l
-#SBATCH --job-name=BRM_Parallelization
-#SBATCH --output=BRM.o%j
+#SBATCH --job-name=BRM_Parallelization2
+#SBATCH --output=BRM2.o%j
 #SBATCH --time=1:00:00
 #SBATCH --mem=16G
 #SBATCH --nodes=1
@@ -10,4 +10,4 @@
 module reset
 module load R
 
-R --no-save -q < Model_for_small_dataset.R
+R --no-save -q < Model_for_small_dataset2.R

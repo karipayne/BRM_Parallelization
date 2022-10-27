@@ -1,0 +1,126 @@
+Running "module reset". Resetting modules to system default. The following $MODULEPATH directories have been removed: None
+> # library(dplyr)
+> # library(lattice)
+> # library(ggplot2)
+> # library(MASS)
+> # library(tidyr)
+> # library(zoo)
+> # library(lme4)
+> # library(effects)
+> library(brms)
+Loading required package: Rcpp
+Registered S3 methods overwritten by 'tibble':
+  method     from  
+  format.tbl pillar
+  print.tbl  pillar
+Loading 'brms' package (version 2.17.0). Useful instructions
+can be found by typing help('brms'). A more detailed introduction
+to the package is available through vignette('brms_overview').
+
+Attaching package: ‘brms’
+
+The following object is masked from ‘package:stats’:
+
+    ar
+
+> # library(tidybayes)
+> # library(modelr)
+> # library(gridExtra)
+> # library(bayesplot)
+> # library(hexbin)
+> # library(foreach)
+> # library(doParallel)
+> 
+> # Libraries copied from another analysis file. Some are not needed in this file, but
+> # will be later when I add this code back in elsewhere. I commented out all of the
+> # libraries that were unnecessary for testing this section.
+> 
+> # Read in data
+> myd<- read.csv("vid1MCBRD.csv", na.strings="NA", stringsAsFactors = T)
+> 
+> # Assign euclidean distance variable from dataset
+> euc <- myd$Euc_Distance_VA
+> 
+> # Recoding zero values to half of the smallest other value (minimum)
+> # This is to run a censored regression later.
+> euc.min <- min(euc[which(euc != 0)])
+> euc.transform <- ifelse(euc == 0, (euc.min/2), euc)
+> sort(unique(euc.transform))[1:15] # this shows that the minimum has been correctly adjusted. It's just that R is rounding weirdly for other functions
+ [1] 0.00644565 0.01289130 0.01345717 0.01375868 0.01375868 0.01375868
+ [7] 0.01375868 0.01378170 0.01399106 0.01399106 0.01399106 0.01399106
+[13] 0.01428786 0.01590485 0.01645339
+> euc.min.trans <- euc.min/2
+> euc.min.trans
+[1] 0.00644565
+> myd$euctrans <- euc.transform
+> 
+> #Set up censoring of the smallest value
+> myd$censored = ifelse(myd$euctrans==euc.min.trans, -1, 0) #lowercase censored for running the model
+> myd$Censored.graph = ifelse(myd$euctrans==euc.min.trans, "Yes", "No") #uppercase Censored.graph for graphing later
+> 
+> #Center continuous predictors by subtracting the mean
+> myd$TRIAL_blurCondition.c <- (myd$TRIAL_blurCondition - 0.3)
+> myd$TRIAL_windowCondition.c <- (myd$TRIAL_windowCondition - 3)
+> 
+> #Set priors
+> priors2 = c(prior("student_t(3, -1, 4)", class = "Intercept"),
++             #prior("student_t(3, 0, 3)", class = "sd"),
++             #prior("lkj(2)", class = "cor"),
++             prior("student_t(3, 0, 3)", class = "b")
++             #prior("student_t(3, 0, .1)", class = "sd", coef = "c.day", group="ID"),
++             #prior_string("student_t(3, 0, 0.5)", class = "b", coef = paste("GROUP", 1:4, sep="")),
++             #prior_string("student_t(3,-.2, .1)", class = "b", coef = "c.day"),
++             #prior_string("student_t(3, 0, 0.1)", class = "b", coef = paste("c.day:GROUP", 1:4, sep=""))
++ )
+> 
+> #Run Bayesian censored regression
+> #This version is shrunk down to only running analyses on one video's worth of data
+> model <-brm(euctrans| cens(censored)~ TRIAL_blurCondition.c + TRIAL_windowCondition.c, family=Gamma(link="log"),
++            data=myd, init="0", iter=600, chains = 2, cores = 2, backend = "cmdstanr", threads = 2, warmup = 100,
++            prior = priors2, save_pars=save_pars(all=TRUE)) #control = list(adapt_delta = 0.95))
+Start sampling
+Running MCMC with 2 parallel chains, with 2 thread(s) per chain...
+
+Chain 2 WARNING: There aren't enough warmup iterations to fit the 
+Chain 2          three stages of adaptation as currently configured. 
+Chain 2          Reducing each adaptation stage to 15%/75%/10% of 
+Chain 2          the given number of warmup iterations: 
+Chain 2            init_buffer = 15 
+Chain 2            adapt_window = 75 
+Chain 2            term_buffer = 10 
+Chain 1 WARNING: There aren't enough warmup iterations to fit the 
+Chain 1          three stages of adaptation as currently configured. 
+Chain 1          Reducing each adaptation stage to 15%/75%/10% of 
+Chain 1          the given number of warmup iterations: 
+Chain 1            init_buffer = 15 
+Chain 1            adapt_window = 75 
+Chain 1            term_buffer = 10 
+Chain 1 Iteration:   1 / 600 [  0%]  (Warmup) 
+Chain 2 Iteration:   1 / 600 [  0%]  (Warmup) 
+Chain 1 Iteration: 100 / 600 [ 16%]  (Warmup) 
+Chain 1 Iteration: 101 / 600 [ 16%]  (Sampling) 
+Chain 2 Iteration: 100 / 600 [ 16%]  (Warmup) 
+Chain 2 Iteration: 101 / 600 [ 16%]  (Sampling) 
+Chain 1 Iteration: 200 / 600 [ 33%]  (Sampling) 
+Chain 2 Iteration: 200 / 600 [ 33%]  (Sampling) 
+Chain 1 Iteration: 300 / 600 [ 50%]  (Sampling) 
+Chain 2 Iteration: 300 / 600 [ 50%]  (Sampling) 
+Chain 1 Iteration: 400 / 600 [ 66%]  (Sampling) 
+Chain 2 Iteration: 400 / 600 [ 66%]  (Sampling) 
+Chain 1 Iteration: 500 / 600 [ 83%]  (Sampling) 
+Chain 2 Iteration: 500 / 600 [ 83%]  (Sampling) 
+Chain 1 Iteration: 600 / 600 [100%]  (Sampling) 
+Chain 1 finished in 124.6 seconds.
+Chain 2 Iteration: 600 / 600 [100%]  (Sampling) 
+Chain 2 finished in 135.4 seconds.
+
+Both chains finished successfully.
+Mean chain execution time: 130.0 seconds.
+Total execution time: 136.1 seconds.
+
+Warning message:
+Rows containing NAs were excluded from the model. 
+> 
+> #Save model
+> saveRDS(model, "BCR_1vid.rds")
+> 
